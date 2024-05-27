@@ -1,9 +1,9 @@
 import axios from "axios";
 import OpenAI from "openai";
 import fs from "fs";
-import openai from "openai";
-import { Readable } from "stream";
 import path from "path";
+import { randomUUID } from "crypto";
+import { VoiceService } from "../voice/voice.mjs";
 
 export const OpenAIService = {
   openai: new OpenAI({
@@ -46,9 +46,8 @@ export const OpenAIService = {
     return data.data[0]?.url;
   },
 
-  speechToText: async function (text) {
-    const speechFile = path.resolve("./speech.mp3");
-    console.log(speechFile);
+  createSpeechToTextFile: async function (fileName, text) {
+    const speechFile = path.resolve(`./files/${fileName}.mp3`);
 
     const mp3 = await OpenAIService.openai.audio.speech.create({
       model: "tts-1",
@@ -59,7 +58,8 @@ export const OpenAIService = {
 
     const buffer = Buffer.from(await mp3.arrayBuffer());
     await fs.promises.writeFile(speechFile, buffer);
-    return buffer;
+
+    return speechFile;
   },
 
   async getModerationPolicy(input) {
