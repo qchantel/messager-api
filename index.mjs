@@ -31,8 +31,7 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 // Request location permission
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  console.log("someone is chatting");
-  const keyboard = [[{ text: "Share Location", request_location: true }]];
+  const keyboard = [[{ text: "Share Location 📍", request_location: true }]];
   const replyMarkup = {
     keyboard: keyboard,
     one_time_keyboard: true,
@@ -41,6 +40,11 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, "👋 hey, mind sharing your location?", {
     reply_markup: replyMarkup,
   });
+});
+
+// Request location permission
+bot.onText(/\/hello/, async (msg) => {
+  bot.sendMessage(msg.chat.id, "👋 hey ho, hello");
 });
 
 // Request location permission
