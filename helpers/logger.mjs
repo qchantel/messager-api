@@ -1,15 +1,13 @@
-import chalk from "chalk";
-
 export const Logger = {
   info: (...message) => {
-    console.log(chalk.cyan("[INFO]", ...message));
+    console.log(...message);
   },
   error: (...message) => {
     if (message.length === 1 && message[0] instanceof Error) {
       const err = message[0];
 
       // Log the error using console.log
-      console.log(chalk.red("[ERROR]", err));
+      console.log("[ERROR]", err);
 
       const errorMessage = `-\n\n\n:warning::warning::warning:\n\n*ERROR NAME*\n${
         err.name

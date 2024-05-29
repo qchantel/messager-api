@@ -2,8 +2,6 @@ import axios from "axios";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
-import { VoiceService } from "../voice/voice.mjs";
 
 export const OpenAIService = {
   openai: new OpenAI({
@@ -79,6 +77,7 @@ export const OpenAIService = {
   async chatCompletion(params) {
     const chatCompletion = await this.openai.chat.completions.create({
       ...params,
+      temperature: 0.4,
       stream: false,
     });
 

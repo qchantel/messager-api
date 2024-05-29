@@ -3,15 +3,14 @@ import { OpenAIService } from "../ai/openai.mjs";
 import { CdnService } from "../cdn/cdn.service.mjs";
 import { VoiceService } from "../voice/voice.mjs";
 import { randomUUID } from "crypto";
-import fs from "fs";
 
 export const TelegramService = {
-  sendVoice: async function sendVoiceMessage(chatId, bot) {
+  sendVoiceAIMessage: async function sendVoiceAIMessage(chatId, bot, text) {
     try {
       const fileName = randomUUID();
       const filePath = await OpenAIService.createSpeechToTextFile(
         fileName,
-        "Hello, how are you?"
+        text
       );
 
       // Convert the file to .ogg container
@@ -32,6 +31,13 @@ export const TelegramService = {
       console.log("Voice message sent successfully");
     } catch (error) {
       console.error("Error sending voice message:", error);
+    }
+  },
+  sendTextMessage: async function (chatId, bot, text) {
+    try {
+      await bot.sendMessage(chatId, text);
+    } catch (error) {
+      console.error("Error sending text message:", error);
     }
   },
 };
