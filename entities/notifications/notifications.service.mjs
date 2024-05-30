@@ -1,33 +1,44 @@
 import { MongoDB } from "../../db/mongodb.mjs";
 import { NewsService } from "../news/news.service.mjs";
 
-export function convertToUTC(userTime, userTimezone) {
+export function convertToUTC(userTime, offset_in_seconds) {
   const [hours, minutes] = userTime.split(":");
+  const seconds = parseInt(hours) * 60 * 60 + parseInt(minutes) * 60;
+  const UTCSeconds = seconds - offset_in_seconds;
 
-  const currentDate = new Date();
-  const userDateTime = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-    currentDate.getDate(),
-    parseInt(hours),
-    parseInt(minutes)
-  );
-
-  const userDateTimeString = userDateTime.toLocaleString("en-US", {
-    timeZone: userTimezone,
-  });
-  const utcDateTime = new Date(userDateTimeString);
-
-  const utcHours = utcDateTime.getUTCHours().toString().padStart(2, "0");
-  const utcMinutes = utcDateTime.getUTCMinutes().toString().padStart(2, "0");
-
-  return {
-    HHMM: `${utcHours}:${utcMinutes}`,
-    minutes: utcDateTime.getUTCMinutes(),
-    hours: utcDateTime.getUTCHours(),
-    secondsSinceMidnight: secondsSinceMidnight(utcHours, utcMinutes),
-  };
+  if (UTCSeconds < 0) {
+    return 24 * 60 * 60 + UTCSeconds;
+  }
+  return UTCSeconds;
 }
+
+// export function convertToUTC(userTime, userTimezone) {
+//   const [hours, minutes] = userTime.split(":");
+
+//   const currentDate = new Date();
+//   const userDateTime = new Date(
+//     currentDate.getFullYear(),
+//     currentDate.getMonth(),
+//     currentDate.getDate(),
+//     parseInt(hours),
+//     parseInt(minutes)
+//   );
+
+//   const userDateTimeString = userDateTime.toLocaleString("en-US", {
+//     timeZone: userTimezone,
+//   });
+//   const utcDateTime = new Date(userDateTimeString);
+
+//   const utcHours = utcDateTime.getUTCHours().toString().padStart(2, "0");
+//   const utcMinutes = utcDateTime.getUTCMinutes().toString().padStart(2, "0");
+
+//   return {
+//     HHMM: `${utcHours}:${utcMinutes}`,
+//     minutes: utcDateTime.getUTCMinutes(),
+//     hours: utcDateTime.getUTCHours(),
+//     secondsSinceMidnight: secondsSinceMidnight(utcHours, utcMinutes),
+//   };
+// }
 
 function secondsSinceMidnight(hours, minutes) {
   return hours * 3600 + minutes * 60;
@@ -57,10 +68,12 @@ export const NotificationsService = {
   },
 
   setTimeToNotify: async function setTimeToNotify(user, time) {
-    const timezone = user.location.timezone;
+    const timezone_offset = user.location.timezone_offset;
 
     // Transform it in seconds since midnight in UTC
-    const UTCTime = convertToUTC(time, timezone);
+    const UTCTime = convertToUTC(time, timezone_offset);
+
+    console.log(UTCTime);
 
     await MongoDB.users.updateOne(
       {
@@ -68,11 +81,10 @@ export const NotificationsService = {
       },
       {
         $set: {
-          time_in_seconds_since_midnight_to_notify:
-            UTCTime.secondsSinceMidnight,
+          time_in_seconds_since_midnight_to_notify: UTCTime,
         },
       }
     );
-    return { time, timezone };
+    return true;
   },
 };

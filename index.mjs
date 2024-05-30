@@ -9,10 +9,7 @@ import { MongoDB } from "./db/mongodb.mjs";
 import { UsersService } from "./entities/users/users.service.mjs";
 import { WeatherService } from "./entities/weather/weather.service.mjs";
 import { ChatService } from "./entities/chats/chats.service.mjs";
-import {
-  NotificationsService,
-  convertToUTC,
-} from "./entities/notifications/notifications.service.mjs";
+import { NotificationsService } from "./entities/notifications/notifications.service.mjs";
 
 const app = express();
 
@@ -76,12 +73,12 @@ bot.onText(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/, async (msg, match) => {
     from: msg.from,
   });
 
-  const { time, timezone } = await NotificationsService.setTimeToNotify(
-    user,
-    match[0]
-  );
+  await NotificationsService.setTimeToNotify(user, match[0]);
 
-  bot.sendMessage(msg.chat.id, `✅ Alright, set at ${time} for ${timezone}.`);
+  bot.sendMessage(
+    msg.chat.id,
+    `✅ Alright, set at ${match[0]} for ${user.location.timezone}.`
+  );
 });
 
 bot.onText(/\/test/, async (msg) => {
