@@ -51,6 +51,17 @@ const createIndexes = async () => {
         },
       }
     );
+
+    // telegramIds are unique
+    await clientDB.collection("users").createIndex(
+      { telegramUserId: 1 },
+      {
+        unique: true,
+        partialFilterExpression: {
+          telegramUserId: { $exists: true },
+        },
+      }
+    );
   } catch (e) {
     Logger.error(
       "Cannot create the index for users email, need to investigate",
@@ -97,6 +108,8 @@ const collections = {
   chats: clientDB.collection("chats"),
   users: clientDB.collection("users"),
   authCodes: clientDB.collection("authCodes"),
+  news: clientDB.collection("news"),
+  notifications: clientDB.collection("notifications"),
 };
 
 export const MongoDB = {

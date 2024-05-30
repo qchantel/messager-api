@@ -29,6 +29,7 @@ export const TelegramService = {
       await bot.sendVoice(chatId, cdnPath, {});
 
       console.log("Voice message sent successfully");
+      return cdnPath;
     } catch (error) {
       console.error("Error sending voice message:", error);
     }

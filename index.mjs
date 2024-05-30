@@ -9,11 +9,14 @@ import { MongoDB } from "./db/mongodb.mjs";
 import { UsersService } from "./entities/users/users.service.mjs";
 import { WeatherService } from "./entities/weather/weather.service.mjs";
 import { ChatService } from "./entities/chats/chats.service.mjs";
+import {
+  NotificationsService,
+  convertToUTC,
+} from "./entities/notifications/notifications.service.mjs";
 
 const app = express();
 
 // Store user state and context
-const userState = {};
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 // Ping MongoDB
@@ -28,8 +31,85 @@ await MongoDB.createIndexes();
 // Avoid rate-limiting the proxy itself
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
+// Start the interval
+const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
+
+bot.onText(/\/stop/, async (msg) => {
+  // Stop the notification for this user
+  await UsersService.toggleNotifications(msg.from.id, false);
+
+  bot.sendMessage(
+    msg.chat.id,
+    "✅ Notifications stopped - type /start to receive them again"
+  );
+});
+
+bot.onText(/\/time/, async (msg) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+
+  const keyboard = [
+    [{ text: "7:00" }, { text: "7:30" }, { text: "8:00" }],
+    [{ text: "8:30" }, { text: "9:00" }, { text: "9:30" }],
+    [{ text: "10:00" }, { text: "10:30" }, { text: "11:00" }],
+  ];
+  const replyMarkup = {
+    keyboard: keyboard,
+    one_time_keyboard: true,
+  };
+
+  bot.sendMessage(
+    msg.chat.id,
+    "⏰ Pick a time for your morning notification 👇",
+    {
+      reply_markup: replyMarkup,
+    }
+  );
+});
+
+// Handle the time message
+bot.onText(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/, async (msg, match) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+  const timezone = user.location.timezone;
+
+  // Get the time from the message
+  const time = match[0];
+
+  // Transform it in seconds since midnight in UTC
+  const UTCTime = convertToUTC(time, timezone);
+
+  await MongoDB.users.updateOne(
+    {
+      telegramUserId: msg.from.id,
+    },
+    {
+      $set: {
+        time_in_seconds_since_midnight_to_notify: UTCTime.secondsSinceMidnight,
+      },
+    }
+  );
+
+  bot.sendMessage(msg.chat.id, `✅ Alright, set at ${time} for ${timezone}.`);
+});
+
+bot.onText(/\/test/, async (msg) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+
+  await NotificationsService.createNotification({
+    telegramUserId: msg.from.id,
+  });
+});
+
 // Request location permission
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const keyboard = [[{ text: "Share Location 📍", request_location: true }]];
   const replyMarkup = {
@@ -40,6 +120,17 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, "👋 hey, mind sharing your location?", {
     reply_markup: replyMarkup,
   });
+});
+
+bot.onText(/\/help/, async (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    `👋 Hey! This is heem, try these commands if you are lost:\n
+    /start - to share your location
+    /time - to set the time of the notification
+    /stop - to stop the notifications
+    `
+  );
 });
 
 // Request location permission
@@ -64,10 +155,9 @@ bot.onText(/\/daily/, async (msg) => {
 
   await bot.sendMessage(
     chatId,
-    `Link to articles below for more info:
-${selectedNews
-  .map((news) => `👉 <a href='${news.url}'>${news.title}</a>\n`)
-  .join("")}
+    `${selectedNews
+      .map((news) => `👉 <a href='${news.url}'>${news.title}</a>\n`)
+      .join("")}
     `,
     {
       parse_mode: "HTML",
@@ -79,17 +169,10 @@ ${selectedNews
 bot.on("message", async (msg) => {
   try {
     const telegramUserId = msg.from.id;
-
     const user = await UsersService.findOrCreateUser({
       telegramUserId,
       from: msg.from,
     });
-
-    const chatId = msg.chat.id;
-
-    const messageText = msg.text;
-
-    console.log("polling", userState, msg);
 
     return;
   } catch (e) {
@@ -104,10 +187,14 @@ bot.on("location", async (msg) => {
   const latitude = location.latitude;
   const longitude = location.longitude;
 
+  await UsersService.toggleNotifications(msg.from.id, true);
+
   const place = await WeatherService.getLocationFromCoordinates({
     latitude,
     longitude,
   });
+
+  const weather = await WeatherService.getWeather({ latitude, longitude });
 
   await MongoDB.users.updateOne(
     { telegramUserId: msg.from.id },
@@ -118,6 +205,9 @@ bot.on("location", async (msg) => {
           latitude,
           city: place.name,
           country: place.country,
+          timezone: weather.timezone,
+          timezone_offset: weather.timezone_offset,
+          units: place.country === "US" ? "imperial" : "metric",
         },
       },
     }

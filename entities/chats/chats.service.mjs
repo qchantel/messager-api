@@ -14,6 +14,15 @@ export const ChatService = {
       user.location.country
     );
 
+    const firthThreeNews = selectedNews.slice(0, 3);
+
+    console.log(
+      user.first_name,
+      user.location.city,
+      weather.daily,
+      selectedNews
+    );
+
     const answer = await AIService.simpleCompletion(
       `You send a daily message every morning. This is one of these messages. This message will be spoken by a voice assistant.
         The user firstname is ${user.first_name} and lives in ${
@@ -25,8 +34,9 @@ export const ChatService = {
         Weather infos:
         ${JSON.stringify(weather.daily)}
 
-        Now let's talk about the news of the day, make it smooth and natural, like you are talking to a friend. Make a mocking comment for the first and third article:
-        ${JSON.stringify(selectedNews)}
+        Now let's talk about the news of the day, make it smooth and natural, like you are talking to a friend. The first one is an important news, be factual. Make a mocking comment for last two ones.
+        The news:
+        ${JSON.stringify(firthThreeNews)}
 
         Do not number the news, your discourse shall flow naturally like you talk to a friend.
 
