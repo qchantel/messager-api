@@ -75,23 +75,10 @@ bot.onText(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/, async (msg, match) => {
     telegramUserId: msg.from.id,
     from: msg.from,
   });
-  const timezone = user.location.timezone;
 
-  // Get the time from the message
-  const time = match[0];
-
-  // Transform it in seconds since midnight in UTC
-  const UTCTime = convertToUTC(time, timezone);
-
-  await MongoDB.users.updateOne(
-    {
-      telegramUserId: msg.from.id,
-    },
-    {
-      $set: {
-        time_in_seconds_since_midnight_to_notify: UTCTime.secondsSinceMidnight,
-      },
-    }
+  const { time, timezone } = await NotificationsService.setTimeToNotify(
+    user,
+    match[0]
   );
 
   bot.sendMessage(msg.chat.id, `✅ Alright, set at ${time} for ${timezone}.`);
@@ -117,9 +104,13 @@ bot.onText(/\/start/, async (msg) => {
     one_time_keyboard: true,
   };
 
-  bot.sendMessage(chatId, "👋 hey, mind sharing your location?", {
-    reply_markup: replyMarkup,
-  });
+  bot.sendMessage(
+    chatId,
+    "👋 Hello, it's Heem, I mean... me. Mind sharing your location?",
+    {
+      reply_markup: replyMarkup,
+    }
+  );
 });
 
 bot.onText(/\/help/, async (msg) => {
@@ -133,12 +124,10 @@ bot.onText(/\/help/, async (msg) => {
   );
 });
 
-// Request location permission
 bot.onText(/\/hello/, async (msg) => {
   bot.sendMessage(msg.chat.id, "👋 hey ho, hello");
 });
 
-// Request location permission
 bot.onText(/\/daily/, async (msg) => {
   const telegramUserId = msg.from.id;
   const chatId = msg.chat.id;
@@ -186,6 +175,7 @@ bot.on("location", async (msg) => {
   const location = msg.location;
   const latitude = location.latitude;
   const longitude = location.longitude;
+  bot.sendChatAction(chatId, "record_voice");
 
   await UsersService.toggleNotifications(msg.from.id, true);
 
@@ -194,9 +184,14 @@ bot.on("location", async (msg) => {
     longitude,
   });
 
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+
   const weather = await WeatherService.getWeather({ latitude, longitude });
 
-  await MongoDB.users.updateOne(
+  const updatedUser = await MongoDB.users.findOneAndUpdate(
     { telegramUserId: msg.from.id },
     {
       $set: {
@@ -210,19 +205,30 @@ bot.on("location", async (msg) => {
           units: place.country === "US" ? "imperial" : "metric",
         },
       },
+    },
+    {
+      returnDocument: "after",
     }
   );
+
+  if (!user.time_in_seconds_since_midnight_to_notify) {
+    await NotificationsService.setTimeToNotify(updatedUser, "8:00");
+  }
 
   const answer = await AIService.simpleCompletion(
     `The user just shared their location, they are in ${place.name}. 
 
-    Start your answer by "Got it! Thanks.".
+    Start your answer by "Got it! Thanks ${msg.from.first_name}.".
     Make a one line mocking comment about the place to greet the user.
     Don't ask any question to the user.
 
     After the comment tell the user that if they want to change it, they just have to share their location again.
+    Finish the message by: 
+    "Tomorrow morning, expect a wake-up call from my magnificent voice with the weather and all the latest news.
+    Try not to be too excited. See you."
 
-    Write in the country language of the place, this is the code: ${place.country}`
+ 
+    `
   );
 
   TelegramService.sendVoiceAIMessage(chatId, bot, answer);

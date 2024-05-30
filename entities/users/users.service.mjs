@@ -16,6 +16,7 @@ export const UsersService = {
 
     if (!!user) return user;
 
+    console.log("creating user");
     await MongoDB.users.insertOne({
       _id: MongoDB.uuid(),
       telegramUserId,

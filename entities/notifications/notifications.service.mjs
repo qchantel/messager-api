@@ -55,4 +55,24 @@ export const NotificationsService = {
       cdnVoicePath,
     });
   },
+
+  setTimeToNotify: async function setTimeToNotify(user, time) {
+    const timezone = user.location.timezone;
+
+    // Transform it in seconds since midnight in UTC
+    const UTCTime = convertToUTC(time, timezone);
+
+    await MongoDB.users.updateOne(
+      {
+        telegramUserId: user.telegramUserId,
+      },
+      {
+        $set: {
+          time_in_seconds_since_midnight_to_notify:
+            UTCTime.secondsSinceMidnight,
+        },
+      }
+    );
+    return { time, timezone };
+  },
 };
