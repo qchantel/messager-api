@@ -3,13 +3,39 @@ import { OpenAIService } from "./openai.mjs";
 
 export const AIService = {
   replyToChat: async function (messages, params) {
-    const { temperature = 0.4, model = "gpt-4o" } = {};
+    const { temperature = 0.4, model = "gpt-4o" } = params ?? {};
 
     try {
       const res = await OpenAIService.chatCompletion({
         model,
         temperature,
-        messages: AIHelpers.buildChatMessage(messages),
+        messages,
+        stream: true,
+        ...params,
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  conversationCompletion: async function (conversation, params) {
+    const { temperature = 0.4, model = "gpt-4o" } = params ?? {};
+
+    try {
+      const res = await OpenAIService.chatCompletion({
+        model,
+        temperature,
+        messages: [
+          {
+            role: "system",
+            content: `You are Heem, a daily assistant. You are nice but mock people sometimes.
+            You have access to information about the conversation you have with the user.
+            `,
+          },
+          ...conversation,
+        ],
         stream: true,
         ...params,
       });
@@ -36,12 +62,12 @@ export const AIService = {
     }
   },
 
-  neutralCompletion: async function (text, params = 0) {
+  neutralCompletion: async function (text, params = { temperature: 0 }) {
     try {
       const messages = [
         {
           role: "system",
-          content: `You are data processor. Your output is only valid JSON. You don't include any commentary.`,
+          content: `You are a data processor. Your output is only valid JSON. You don't include any commentary.`,
         },
         { role: "user", content: text },
       ];

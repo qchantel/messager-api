@@ -1,19 +1,13 @@
 import fs from "fs";
 import axios from "axios";
+import { NewsService } from "../news/news.service.mjs";
 
 export const CdnService = {
   uploadFile: async (filePath, fileName) => {
     try {
-      const subpath = "voices";
+      const today = NewsService.getCurrentDate();
+      const subpath = `voices/${today}`;
       const stream = fs.createReadStream(filePath);
-      // const uploadUrl = `https://storage.bunnycdn.com/${storageZoneName}/${fileName}`;
-
-      // const response = await axios.put(uploadUrl, fileStream, {
-      //   headers: {
-      //     AccessKey: apiKey,
-      //     "Content-Type": "audio/mpeg",
-      //   },
-      // });
 
       const response = await axios.put(
         `${process.env.BUNNY_FILES_STORAGE_URL}/${subpath}/${fileName}`,
@@ -26,8 +20,10 @@ export const CdnService = {
         }
       );
 
-      console.log("File uploaded successfully");
-      console.log("Upload response:", response.data);
+      console.log(
+        "File uploaded successfully",
+        `${process.env.FILES_ENDPOINT}/${subpath}/${fileName}`
+      );
 
       return `${process.env.FILES_ENDPOINT}/${subpath}/${fileName}`;
     } catch (error) {

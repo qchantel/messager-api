@@ -16,13 +16,13 @@ export const UsersService = {
 
     if (!!user) return user;
 
-    console.log("creating user");
     await MongoDB.users.insertOne({
       _id: MongoDB.uuid(),
       telegramUserId,
       first_name: from.first_name,
       last_name: from.last_name,
       language_code: from.language_code,
+      created_at: new Date(),
     });
   },
 
@@ -42,12 +42,15 @@ export const UsersService = {
     console.log({ usersToNotify });
     const today = NewsService.getCurrentDate();
 
+    const filter = { _id: { $in: usersToNotify.map((user) => user._id) } };
+    const update = { $addToSet: { date_of_notifications: today } };
+    console.log(usersToNotify);
+    await MongoDB.users.updateMany(filter, update);
+
+    console.log("finished updating users");
+
     for (const user of usersToNotify) {
       const { telegramUserId } = user;
-      await MongoDB.users.updateOne(
-        { telegramUserId },
-        { $addToSet: { date_of_notifications: today } }
-      );
 
       const { answer, selectedNews } =
         await ChatService.generateFirstMessageOfTheDay(
@@ -99,6 +102,7 @@ ${remainingNews
 
     const upperBound = currentSeconds + 60 * 10;
 
+    console.log({ currentSeconds, upperBound });
     const usersToNotify = await MongoDB.users
       .find({
         time_in_seconds_since_midnight_to_notify: {

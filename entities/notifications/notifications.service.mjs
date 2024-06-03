@@ -40,10 +40,6 @@ export function convertToUTC(userTime, offset_in_seconds) {
 //   };
 // }
 
-function secondsSinceMidnight(hours, minutes) {
-  return hours * 3600 + minutes * 60;
-}
-
 export const NotificationsService = {
   createNotification: async function createNotification({
     telegramUserId,
@@ -68,12 +64,13 @@ export const NotificationsService = {
   },
 
   setTimeToNotify: async function setTimeToNotify(user, time) {
+    if (!user.location.timezone_offset) {
+      return false;
+    }
     const timezone_offset = user.location.timezone_offset;
 
     // Transform it in seconds since midnight in UTC
     const UTCTime = convertToUTC(time, timezone_offset);
-
-    console.log(UTCTime);
 
     await MongoDB.users.updateOne(
       {

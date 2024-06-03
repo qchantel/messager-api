@@ -4,7 +4,7 @@ import axios from "axios";
 const openWeatherMapApiKey = process.env.WEATHER_API_KEY;
 
 export const WeatherService = {
-  getWeather: async function getWeather({ latitude, longitude }) {
+  getWeather: async function ({ latitude, longitude }) {
     try {
       // Make a request to the OpenWeatherMap API to get the weather data
       const response = await axios.get(

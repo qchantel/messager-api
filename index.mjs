@@ -25,6 +25,8 @@ await MongoDB.migrate();
 // Create the indexes
 await MongoDB.createIndexes();
 
+WeatherService.getWeather({ latitude: 48.8566, longitude: 2.3522 });
+
 // Avoid rate-limiting the proxy itself
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
@@ -72,6 +74,22 @@ bot.onText(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/, async (msg, match) => {
     telegramUserId: msg.from.id,
     from: msg.from,
   });
+  if (!user?.location) {
+    const chatId = msg.chat.id;
+    const keyboard = [[{ text: "Share Location 📍", request_location: true }]];
+    const replyMarkup = {
+      keyboard: keyboard,
+      one_time_keyboard: true,
+    };
+
+    return bot.sendMessage(
+      chatId,
+      "👋 Hello, before I can change time, please share your location so I can work properly. For some reason I did not have it the first time. It only works on your phone! Not your computer.",
+      {
+        reply_markup: replyMarkup,
+      }
+    );
+  }
 
   await NotificationsService.setTimeToNotify(user, match[0]);
 
@@ -89,6 +107,20 @@ bot.onText(/\/test/, async (msg) => {
 
   await NotificationsService.createNotification({
     telegramUserId: msg.from.id,
+  });
+});
+
+// Request location permission
+bot.onText(/\/location/, async (msg) => {
+  const chatId = msg.chat.id;
+  const keyboard = [[{ text: "Share Location 📍", request_location: true }]];
+  const replyMarkup = {
+    keyboard: keyboard,
+    one_time_keyboard: true,
+  };
+
+  bot.sendMessage(chatId, "Share your location below 👇", {
+    reply_markup: replyMarkup,
   });
 });
 
@@ -152,14 +184,16 @@ bot.onText(/\/daily/, async (msg) => {
 });
 
 // Handle incoming messages
-bot.on("message", async (msg) => {
+bot.on("message", async (msg, wow) => {
   try {
-    const telegramUserId = msg.from.id;
-    const user = await UsersService.findOrCreateUser({
-      telegramUserId,
-      from: msg.from,
-    });
+    if (msg.text[0] === "/") {
+      // It's a command, let's return
+      return;
+    }
+    const chatId = msg.chat.id;
+    bot.sendChatAction(chatId, "record_voice");
 
+    await ChatService.answerUser(msg, bot);
     return;
   } catch (e) {
     console.error(e);
@@ -213,7 +247,7 @@ bot.on("location", async (msg) => {
   }
 
   const answer = await AIService.simpleCompletion(
-    `The user just shared their location, they are in ${place.name}. 
+    `The user just shared their location, they are in ${place.name} (${place.country}). 
 
     Start your answer by "Got it! Thanks ${msg.from.first_name}.".
     Make a one line mocking comment about the place to greet the user.
@@ -223,8 +257,6 @@ bot.on("location", async (msg) => {
     Finish the message by: 
     "Tomorrow morning, expect a wake-up call from my magnificent voice with the weather and all the latest news.
     Try not to be too excited. See you."
-
- 
     `
   );
 
