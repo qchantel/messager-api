@@ -45,12 +45,12 @@ export const OpenAIService = {
     return data.data[0]?.url;
   },
 
-  createTextToSpeech: async function (fileName, text) {
+  createTextToSpeech: async function (fileName, text, voice = "alloy") {
     const speechFile = path.resolve(`./files/${fileName}.mp3`);
 
     const mp3 = await OpenAIService.openai.audio.speech.create({
       model: "tts-1",
-      voice: "alloy",
+      voice,
       input: text,
       response_format: "mp3",
     });

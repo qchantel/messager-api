@@ -4,6 +4,8 @@ import { OpenAIService } from "../ai/openai.mjs";
 import { ChatService } from "../chats/chats.service.mjs";
 
 export const VoiceService = {
+  VOICES: ["alloy", "echo", "fable", "nova", "onyx", "shimmer"],
+
   createOggFileFromMp3: async function createOggFileFromMp3(mp3FilePath) {
     const targetPath = mp3FilePath.replace(".mp3", ".ogg");
 

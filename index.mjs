@@ -128,11 +128,15 @@ bot.onText(/\/voice/, async (msg) => {
     from: msg.from,
   });
 
-  const keyboard = [
-    [{ text: "alloy" }, { text: "echo" }, { text: "fable" }],
-    [{ text: "onyx" }, { text: "onyx" }, { text: "nova" }],
-    [{ text: "shimmer" }],
-  ];
+  const keyboard = VoiceService.VOICES.reduce((acc, voice, index) => {
+    const rowIndex = Math.floor(index / 3);
+    if (!acc[rowIndex]) {
+      acc[rowIndex] = [];
+    }
+    acc[rowIndex].push({ text: voice });
+    return acc;
+  }, []);
+
   const replyMarkup = {
     keyboard: keyboard,
     one_time_keyboard: true,
@@ -187,7 +191,7 @@ bot.on("message", async (msg) => {
     }
 
     // if text matches time format
-    if (msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/)) {
+    if (msg?.text && msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/)) {
       const match = msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/);
       const user = await UsersService.findOrCreateUser({
         telegramUserId: msg.from.id,
@@ -221,6 +225,32 @@ bot.on("message", async (msg) => {
 
       return;
     }
+
+    // if matches one of the voices perfectly
+    if (msg?.text && VoiceService.VOICES.some((item) => item === msg.text)) {
+      bot.sendChatAction(chatId, "record_voice");
+      const user = await UsersService.findOrCreateUser({
+        telegramUserId: msg.from.id,
+        from: msg.from,
+      });
+
+      await MongoDB.users.findOneAndUpdate(
+        { telegramUserId: msg.from.id },
+        {
+          $set: {
+            voice: msg.text,
+          },
+        }
+      );
+      await TelegramService.sendVoiceAIMessage(
+        chatId,
+        bot,
+        `Alright, hope you like my new voice ${msg.from.first_name}.`
+      );
+
+      return;
+    }
+
     if (msg?.text) {
       bot.sendChatAction(chatId, "record_voice");
       await ChatService.answerUser(msg, bot);

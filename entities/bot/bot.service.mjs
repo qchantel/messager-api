@@ -1,3 +1,4 @@
+import { MongoDB } from "../../db/mongodb.mjs";
 import { FileService } from "../../files/files.service.mjs";
 import { OpenAIService } from "../ai/openai.mjs";
 import { CdnService } from "../cdn/cdn.service.mjs";
@@ -7,8 +8,15 @@ import { randomUUID } from "crypto";
 export const TelegramService = {
   sendVoiceAIMessage: async function sendVoiceAIMessage(chatId, bot, text) {
     try {
+      const { voice = "alloy" } = await MongoDB.users.findOne({
+        telegramUserId: chatId,
+      });
       const fileName = randomUUID();
-      const filePath = await OpenAIService.createTextToSpeech(fileName, text);
+      const filePath = await OpenAIService.createTextToSpeech(
+        fileName,
+        text,
+        voice
+      );
 
       // Convert the file to .ogg container
       const oggFilePath = await VoiceService.createOggFileFromMp3(filePath);
