@@ -8,10 +8,7 @@ export const TelegramService = {
   sendVoiceAIMessage: async function sendVoiceAIMessage(chatId, bot, text) {
     try {
       const fileName = randomUUID();
-      const filePath = await OpenAIService.createSpeechToTextFile(
-        fileName,
-        text
-      );
+      const filePath = await OpenAIService.createTextToSpeech(fileName, text);
 
       // Convert the file to .ogg container
       const oggFilePath = await VoiceService.createOggFileFromMp3(filePath);

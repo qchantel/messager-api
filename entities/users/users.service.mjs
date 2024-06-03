@@ -44,10 +44,7 @@ export const UsersService = {
 
     const filter = { _id: { $in: usersToNotify.map((user) => user._id) } };
     const update = { $addToSet: { date_of_notifications: today } };
-    console.log(usersToNotify);
     await MongoDB.users.updateMany(filter, update);
-
-    console.log("finished updating users");
 
     for (const user of usersToNotify) {
       const { telegramUserId } = user;
@@ -102,7 +99,6 @@ ${remainingNews
 
     const upperBound = currentSeconds + 60 * 10;
 
-    console.log({ currentSeconds, upperBound });
     const usersToNotify = await MongoDB.users
       .find({
         time_in_seconds_since_midnight_to_notify: {

@@ -10,6 +10,7 @@ import { UsersService } from "./entities/users/users.service.mjs";
 import { WeatherService } from "./entities/weather/weather.service.mjs";
 import { ChatService } from "./entities/chats/chats.service.mjs";
 import { NotificationsService } from "./entities/notifications/notifications.service.mjs";
+import { VoiceService } from "./entities/voice/voice.mjs";
 
 const app = express();
 
@@ -24,8 +25,6 @@ await MongoDB.migrate();
 
 // Create the indexes
 await MongoDB.createIndexes();
-
-WeatherService.getWeather({ latitude: 48.8566, longitude: 2.3522 });
 
 // Avoid rate-limiting the proxy itself
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
@@ -57,45 +56,15 @@ bot.onText(/\/time/, async (msg) => {
   const replyMarkup = {
     keyboard: keyboard,
     one_time_keyboard: true,
+    remove_keyboard: true,
   };
 
-  bot.sendMessage(
+  await bot.sendMessage(
     msg.chat.id,
     "⏰ Pick a time for your morning notification 👇",
     {
       reply_markup: replyMarkup,
     }
-  );
-});
-
-// Handle the time message
-bot.onText(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/, async (msg, match) => {
-  const user = await UsersService.findOrCreateUser({
-    telegramUserId: msg.from.id,
-    from: msg.from,
-  });
-  if (!user?.location) {
-    const chatId = msg.chat.id;
-    const keyboard = [[{ text: "Share Location 📍", request_location: true }]];
-    const replyMarkup = {
-      keyboard: keyboard,
-      one_time_keyboard: true,
-    };
-
-    return bot.sendMessage(
-      chatId,
-      "👋 Hello, before I can change time, please share your location so I can work properly. For some reason I did not have it the first time. It only works on your phone! Not your computer.",
-      {
-        reply_markup: replyMarkup,
-      }
-    );
-  }
-
-  await NotificationsService.setTimeToNotify(user, match[0]);
-
-  bot.sendMessage(
-    msg.chat.id,
-    `✅ Alright, set at ${match[0]} for ${user.location.timezone}.`
   );
 });
 
@@ -153,6 +122,27 @@ bot.onText(/\/help/, async (msg) => {
   );
 });
 
+bot.onText(/\/voice/, async (msg) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+
+  const keyboard = [
+    [{ text: "alloy" }, { text: "echo" }, { text: "fable" }],
+    [{ text: "onyx" }, { text: "onyx" }, { text: "nova" }],
+    [{ text: "shimmer" }],
+  ];
+  const replyMarkup = {
+    keyboard: keyboard,
+    one_time_keyboard: true,
+  };
+
+  bot.sendMessage(msg.chat.id, "Pick a voice that you like 👇", {
+    reply_markup: replyMarkup,
+  });
+});
+
 bot.onText(/\/hello/, async (msg) => {
   bot.sendMessage(msg.chat.id, "👋 hey ho, hello");
 });
@@ -183,17 +173,58 @@ bot.onText(/\/daily/, async (msg) => {
   );
 });
 
+bot.on("voice", async (msg) => {
+  await VoiceService.getVoiceMessage({ msg, bot });
+});
+
 // Handle incoming messages
-bot.on("message", async (msg, wow) => {
+bot.on("message", async (msg) => {
   try {
-    if (msg.text[0] === "/") {
+    const chatId = msg.chat.id;
+    if (msg?.text && msg.text[0] === "/") {
       // It's a command, let's return
       return;
     }
-    const chatId = msg.chat.id;
-    bot.sendChatAction(chatId, "record_voice");
 
-    await ChatService.answerUser(msg, bot);
+    // if text matches time format
+    if (msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/)) {
+      const match = msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/);
+      const user = await UsersService.findOrCreateUser({
+        telegramUserId: msg.from.id,
+        from: msg.from,
+      });
+      if (!user?.location) {
+        const chatId = msg.chat.id;
+        const keyboard = [
+          [{ text: "Share Location 📍", request_location: true }],
+        ];
+        const replyMarkup = {
+          keyboard: keyboard,
+          one_time_keyboard: true,
+        };
+
+        return bot.sendMessage(
+          chatId,
+          "👋 Hello, before I can change time, please share your location so I can work properly. For some reason I did not have it the first time. It only works on your phone! Not your computer.",
+          {
+            reply_markup: replyMarkup,
+          }
+        );
+      }
+
+      await NotificationsService.setTimeToNotify(user, match[0]);
+
+      bot.sendMessage(
+        msg.chat.id,
+        `✅ Alright, set at ${match[0]} for ${user.location.timezone}.`
+      );
+
+      return;
+    }
+    if (msg?.text) {
+      bot.sendChatAction(chatId, "record_voice");
+      await ChatService.answerUser(msg, bot);
+    }
     return;
   } catch (e) {
     console.error(e);

@@ -2,6 +2,7 @@ import axios from "axios";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 export const OpenAIService = {
   openai: new OpenAI({
@@ -44,7 +45,7 @@ export const OpenAIService = {
     return data.data[0]?.url;
   },
 
-  createSpeechToTextFile: async function (fileName, text) {
+  createTextToSpeech: async function (fileName, text) {
     const speechFile = path.resolve(`./files/${fileName}.mp3`);
 
     const mp3 = await OpenAIService.openai.audio.speech.create({
@@ -60,18 +61,23 @@ export const OpenAIService = {
     return speechFile;
   },
 
-  async getModerationPolicy(input) {
-    const { data } = await axios.post(
-      "https://api.openai.com/v1/moderations",
-      { input },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
-    return data.results[0];
+  async speechToText(filePath) {
+    const response = await axios.get(filePath, { responseType: "arraybuffer" });
+    const audioData = response.data;
+
+    // Create a temporary file path
+    const tempFilePath = path.join(os.tmpdir(), "temp_audio_file.oga");
+
+    // Write the downloaded audio data to the temporary file
+    fs.writeFileSync(tempFilePath, audioData);
+
+    const transcription =
+      await OpenAIService.openai.audio.transcriptions.create({
+        file: fs.createReadStream(tempFilePath),
+        model: "whisper-1",
+      });
+
+    return transcription;
   },
 
   async chatCompletion(params) {

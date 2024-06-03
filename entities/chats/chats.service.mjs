@@ -21,23 +21,6 @@ export const ChatService = {
 
     const firthThreeNews = selectedNews.slice(0, 3);
 
-    console.log(`You send a daily message every morning. This is one of these messages. This message will be spoken by a voice assistant.
-    The user firstname is ${user.first_name} and lives in ${user.location.city}.
-
-    These are the information I have about the weather, tell them a good morning and the weather.
-    When you talk about temperatures, never add the decimals.
-    Weather infos:
-    ${JSON.stringify(weather.daily[0])}
-    ${alerts}
-
-    Now let's talk about the news of the day, make it smooth and natural, like you are talking to a friend. The first one is an important news, be factual. Make a mocking comment for last two ones.
-    The news:
-    ${JSON.stringify(firthThreeNews)}
-
-    Do not number the news, your discourse shall flow naturally like you talk to a friend.
-
-
-`);
     const answer = await AIService.simpleCompletion(
       `You send a daily message every morning. This is one of these messages. This message will be spoken by a voice assistant.
         The user firstname is ${user.first_name} and lives in ${
