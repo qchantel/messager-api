@@ -25,8 +25,8 @@ bot.setMyCommands([
   { command: "/location", description: "Set your location 📍" },
   { command: "/time", description: "Set the time of the notification ⏰" },
   { command: "/voice", description: "Pick a voice 🎤" },
-  { command: "/stop", description: "Stop the notifications 🙊" },
   { command: "/categories", description: "Change news categories 📰" },
+  { command: "/stop", description: "Stop the notifications 🙊" },
   { command: "/start", description: "Start receiving messages" },
 ]);
 
