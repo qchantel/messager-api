@@ -2,7 +2,7 @@ import { MongoDB } from "../../db/mongodb.mjs";
 import { AIService } from "../ai/ai.service.mjs";
 import { TelegramService } from "../bot/bot.service.mjs";
 import { ConversationService } from "../conversation/conversation.service.mjs";
-import { NewsService } from "../news/news.service.mjs";
+import { NEWS_CATEGORIES_LIST, NewsService } from "../news/news.service.mjs";
 import { UsersService } from "../users/users.service.mjs";
 import { WeatherService } from "../weather/weather.service.mjs";
 
@@ -16,7 +16,8 @@ export const ChatService = {
       : "";
 
     const selectedNews = await NewsService.getSelectedNews(
-      user.location.country
+      user.location.country,
+      user.categories ?? NEWS_CATEGORIES_LIST
     );
 
     const firthThreeNews = selectedNews.slice(0, 3);
@@ -38,10 +39,7 @@ export const ChatService = {
         ${JSON.stringify(firthThreeNews)}
 
         Do not number the news, your discourse shall flow naturally like you talk to a friend.
-
-
-    `,
-      { temperature: 0.5 }
+    `
     );
 
     return { answer, selectedNews };
@@ -50,6 +48,7 @@ export const ChatService = {
   answerUser: async function (msg, bot) {
     const telegramUserId = msg.from.id;
     const message = msg.text;
+    const metaMessage = `${message}`;
 
     const user = await UsersService.findOrCreateUser({
       telegramUserId,
@@ -59,7 +58,7 @@ export const ChatService = {
     // Add the message to the conversation
     const conversation = await ConversationService.saveMessage({
       telegramUserId,
-      message,
+      message: metaMessage,
       role: "user",
     });
 
@@ -71,9 +70,7 @@ export const ChatService = {
     }
 
     // Generate the answer
-    const answer = await AIService.conversationCompletion(conversation, {
-      temperature: 0.5,
-    });
+    const answer = await AIService.conversationCompletion(conversation, user);
 
     // Add the answer to the conversation
     await ConversationService.saveMessage({

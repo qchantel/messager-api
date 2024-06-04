@@ -82,6 +82,7 @@ export const NotificationsService = {
         },
       }
     );
-    return true;
+
+    return time;
   },
 };

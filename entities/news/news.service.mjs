@@ -2,6 +2,27 @@ import axios from "axios";
 import { AIService } from "../ai/ai.service.mjs";
 import { MongoDB } from "../../db/mongodb.mjs";
 
+function encodeData(data) {
+  return Object.keys(data)
+    .filter((key) => data[key])
+    .map(function (key) {
+      return [key, data[key]].map(encodeURIComponent).join("=");
+    })
+    .join("&");
+}
+
+export const NEWS_CATEGORIES_LIST = [
+  "general",
+  "science",
+  "tech",
+  "business",
+  "health",
+  "entertainment",
+  "politics",
+  "travel",
+  "sports",
+];
+
 export const NewsService = {
   getDbNews: async function getDbNews(code, date = this.getCurrentDate()) {
     const dbNews = await MongoDB.news.findOne({
@@ -12,7 +33,29 @@ export const NewsService = {
 
     return dbNews[code];
   },
-  getNews: async function getNews(code = "us") {
+  // TheNewsAPI
+  getNews: async function (userParams = {}) {
+    const params = {
+      locale: "fr",
+      search: "",
+      limit: 2,
+      api_token: process.env.THE_NEWS_API_KEY,
+      headlines_per_category: 6,
+      ...userParams,
+    };
+
+    try {
+      const querystring = encodeData(params);
+      const response = await axios.get(
+        `https://api.thenewsapi.com/v1/news/headlines?${querystring}`
+      );
+      return response.data.data;
+    } catch (e) {
+      console.error(e);
+    }
+  },
+  // NewsAPI
+  getNewsLegacy: async function getNews(code = "us") {
     try {
       const response = await axios.get(
         `https://newsapi.org/v2/top-headlines?country=${code.toLowerCase()}&apiKey=${
@@ -33,62 +76,109 @@ export const NewsService = {
     return `${year}-${month}-${day}`;
   },
 
-  getSelectedNews: async function getSelectedNews(code = "us", leave = 0) {
+  getSelectedNews: async function getSelectedNews(
+    code = "us",
+    categories = NEWS_CATEGORIES_LIST
+  ) {
+    let news = null;
     // Check for news in the database
-    const dbNews = await this.getDbNews(code);
-    if (dbNews) return dbNews;
+    news = await this.getDbNews(code);
 
-    // Otherwise get news from the API
-    const news = await this.getNews(code);
+    if (!news) {
+      // Otherwise get news from the API
+      news = await this.getNews(code);
 
-    const selectedNews = await AIService.neutralCompletion(
-      `I will send you an array of news. You will need to select 5 of them.
+      const today = this.getCurrentDate();
 
-      1) the first one shall be the most important news of the day
-      2) the second one shall be a surprising news
-      3) the second one shall be a positive news
-      4) the second one shall be a an international news
-      5) the second one shall be any of your choice
-
-      Do not include the same news twice.
-
-      Here are the news:
-      ${JSON.stringify(news.articles)}
-
-  
-        Provide your response as a JSON array structure in the form:
-        [
-          {
-            ... // article 1
-          },
-          {
-            ... // article 2
-          },
-          ...
-        }
-        
-        Include no other commentary.
-        `
-    );
-
-    let parsed = [];
-
-    try {
-      parsed = JSON.parse(selectedNews);
-    } catch (e) {
-      console.error(e);
-      if (leave) return selectedNews;
-      console.error("invalid, trying again");
-      return await this.getSelectedNews(code, 1);
+      const query = { date: today };
+      const update = { $set: { [code]: news } };
+      const options = { upsert: true };
+      await MongoDB.news.updateOne(query, update, options);
     }
 
-    const today = this.getCurrentDate();
+    const filtered = (await this.filterByCategory(categories, news)).slice(
+      0,
+      5
+    );
 
-    const query = { date: today };
-    const update = { $set: { [code]: parsed } };
-    const options = { upsert: true };
-    await MongoDB.news.updateOne(query, update, options);
+    return filtered;
+  },
 
-    return parsed;
+  filterByCategory: async function (categories, news) {
+    const filtered = [];
+
+    for (const category of categories) {
+      if (!news[category]) continue;
+      if (!news[category][0]) continue;
+
+      filtered.push(news[category][0]);
+    }
+
+    if (!(filtered.length < 5)) return filtered;
+
+    for (const category of categories) {
+      if (!news[category]) continue;
+      if (!news[category][1]) continue;
+      filtered.push(news[category][1]);
+    }
+
+    if (!(filtered.length < 5)) return filtered;
+
+    for (const category of categories) {
+      if (!news[category]) continue;
+      if (!news[category][2]) continue;
+      filtered.push(news[category][2]);
+    }
+
+    if (!(filtered.length < 5)) return filtered;
+
+    for (const category of categories) {
+      if (!news[category]) continue;
+      if (!news[category][3]) continue;
+      filtered.push(news[category][3]);
+    }
+
+    return filtered;
   },
 };
+
+// LEGACY CODE
+// const selectedNews = await AIService.neutralCompletion(
+//   `I will send you an array of news. You will need to select 5 of them.
+
+//   1) the first one shall be the most important news of the day
+//   2) the second one shall be a surprising news
+//   3) the second one shall be a positive news
+//   4) the second one shall be a an international news
+//   5) the second one shall be any of your choice
+
+//   Do not include the same news twice.
+
+//   Here are the news:
+//   ${JSON.stringify(news.articles)}
+
+//     Provide your response as a JSON array structure in the form:
+//     [
+//       {
+//         ... // article 1
+//       },
+//       {
+//         ... // article 2
+//       },
+//       ...
+//     }
+
+//     Include no other commentary.
+//     `
+// );
+
+// let parsed = [];
+
+// try {
+//   parsed = JSON.parse(selectedNews);
+// } catch (e) {
+//   console.error(e);
+//   if (leave) return selectedNews;
+//   console.error("invalid, trying again");
+//   return await this.getSelectedNews(code, 1);
+// }

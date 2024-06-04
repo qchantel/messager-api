@@ -1,5 +1,6 @@
 import { AIHelpers } from "./ai.helpers.mjs";
 import { OpenAIService } from "./openai.mjs";
+import { TOOLS_AI } from "./tools.calls.mjs";
 
 export const AIService = {
   replyToChat: async function (messages, params) {
@@ -10,7 +11,6 @@ export const AIService = {
         model,
         temperature,
         messages,
-        stream: true,
         ...params,
       });
 
@@ -20,25 +20,25 @@ export const AIService = {
     }
   },
 
-  conversationCompletion: async function (conversation, params) {
-    const { temperature = 0.4, model = "gpt-4o" } = params ?? {};
-
+  conversationCompletion: async function (conversation, user) {
     try {
-      const res = await OpenAIService.chatCompletion({
-        model,
-        temperature,
-        messages: [
-          {
-            role: "system",
-            content: `You are Heem, a daily assistant. You are nice but mock people sometimes.
+      const res = await OpenAIService.chatCompletion(
+        {
+          model: "gpt-4o",
+          temperature: 0.5,
+          messages: [
+            {
+              role: "system",
+              content: `You are Heem, a daily assistant. You are nice but you are sassy and cheeky.
             You have access to information about the conversation you have with the user.
             `,
-          },
-          ...conversation,
-        ],
-        stream: true,
-        ...params,
-      });
+            },
+            ...conversation,
+          ],
+        },
+        TOOLS_AI,
+        user
+      );
 
       return res.data;
     } catch (error) {
@@ -46,12 +46,12 @@ export const AIService = {
     }
   },
 
-  simpleCompletion: async function (text, params) {
+  simpleCompletion: async function (text) {
     try {
       const messages = [
         {
           role: "system",
-          content: `You are Heem, a daily assistant. You are nice but mock people.`,
+          content: `You are Heem, a daily assistant. You are nice but you are sassy and cheeky.`,
         },
         { role: "user", content: text },
       ];

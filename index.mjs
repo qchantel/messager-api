@@ -11,6 +11,10 @@ import { WeatherService } from "./entities/weather/weather.service.mjs";
 import { ChatService } from "./entities/chats/chats.service.mjs";
 import { NotificationsService } from "./entities/notifications/notifications.service.mjs";
 import { VoiceService } from "./entities/voice/voice.mjs";
+import {
+  NEWS_CATEGORIES_LIST,
+  NewsService,
+} from "./entities/news/news.service.mjs";
 
 const app = express();
 
@@ -22,6 +26,7 @@ bot.setMyCommands([
   { command: "/time", description: "Set the time of the notification ⏰" },
   { command: "/voice", description: "Pick a voice 🎤" },
   { command: "/stop", description: "Stop the notifications 🙊" },
+  { command: "/categories", description: "Change news categories 📰" },
   { command: "/start", description: "Start receiving messages" },
 ]);
 
@@ -100,7 +105,6 @@ bot.onText(/\/location/, async (msg) => {
     reply_markup: replyMarkup,
   });
 });
-
 // Request location permission
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -148,6 +152,7 @@ bot.onText(/\/voice/, async (msg) => {
   const replyMarkup = {
     keyboard: keyboard,
     one_time_keyboard: true,
+    remove_keyboard: true,
   };
 
   bot.sendMessage(msg.chat.id, "Pick a voice that you like 👇", {
@@ -155,8 +160,34 @@ bot.onText(/\/voice/, async (msg) => {
   });
 });
 
-bot.onText(/\/hello/, async (msg) => {
-  bot.sendMessage(msg.chat.id, "👋 hey ho, hello");
+bot.onText(/\/categories/, async (msg) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+  bot.sendMessage(
+    msg.chat.id,
+    `<b>Available categories</b>:\n${NEWS_CATEGORIES_LIST.map((category) => {
+      return category.charAt(0).toUpperCase() + category.slice(1);
+    }).join(", ")}\n\n
+<b>Your current categories</b>:\n${user.categories
+      .map((category) => {
+        return category.charAt(0).toUpperCase() + category.slice(1);
+      })
+      .join(", ")}\n\n
+
+Just tell me the categories you want to have in your news. For example: "I want to have only politics and sports"
+    `,
+    {
+      parse_mode: "HTML",
+    }
+  );
+});
+
+// Detects when the user leaves the chat
+bot.on("left_chat_member", async (msg) => {
+  console.log("Someone left the chat", msg);
+  await UsersService.toggleNotifications(msg.from.id, false);
 });
 
 bot.onText(/\/daily/, async (msg) => {
@@ -199,7 +230,7 @@ bot.on("message", async (msg) => {
     }
 
     // if text matches time format
-    if (msg?.text && msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/)) {
+    if (msg?.text && msg.text.match(/^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/)) {
       const match = msg.text.match(/(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]/);
       const user = await UsersService.findOrCreateUser({
         telegramUserId: msg.from.id,

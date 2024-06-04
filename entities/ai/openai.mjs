@@ -3,6 +3,10 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { WeatherService } from "../weather/weather.service.mjs";
+import { UsersService } from "../users/users.service.mjs";
+import { NotificationsService } from "../notifications/notifications.service.mjs";
+import { NEWS_CATEGORIES_LIST } from "../news/news.service.mjs";
 
 export const OpenAIService = {
   openai: new OpenAI({
@@ -80,16 +84,80 @@ export const OpenAIService = {
     return transcription;
   },
 
-  async chatCompletion(params) {
-    const chatCompletion = await this.openai.chat.completions.create({
-      ...params,
+  async chatCompletion(params, tools = [], user) {
+    const messages = params.messages;
+    const { longitude, latitude } = user?.location ?? {};
+    let resData = {};
+
+    const payload = {
       temperature: 0.4,
-      stream: false,
-    });
+      ...params,
+    };
+
+    if (tools?.length) {
+      payload.tools = tools;
+      payload.tool_choice = "auto";
+    }
+
+    resData = await this.openai.chat.completions.create(payload);
+    const responseMessage = resData.choices[0].message;
+
+    // Function calling  // Step 2: check if the model wanted to call a function
+    const toolCalls = responseMessage.tool_calls;
+
+    if (responseMessage.tool_calls) {
+      // Step 3: call the function
+      // Note: the JSON response may not always be valid; be sure to handle errors
+      const availableFunctions = {
+        get_current_weather: () =>
+          WeatherService.getWeather({ latitude, longitude }),
+        get_user_information: () => user,
+        toggle_notifications: ({ toggled }) =>
+          UsersService.toggleNotifications(user.telegramUserId, toggled),
+        set_time_to_notify: async ({ time }) => {
+          return await NotificationsService.setTimeToNotify(user, time);
+        },
+        get_news_categories: () => {
+          return {
+            availableCategories: NEWS_CATEGORIES_LIST,
+            usersCategories: user.categories ?? NEWS_CATEGORIES_LIST,
+          };
+        },
+        change_news_categories: async ({
+          categories_to_add,
+          categories_to_remove,
+        }) => {
+          return await UsersService.changeNewsCategories(
+            user.telegramUserId,
+            categories_to_add,
+            categories_to_remove
+          );
+        },
+      };
+      messages.push(responseMessage); // extend conversation with assistant's reply
+
+      for (const toolCall of toolCalls) {
+        const functionName = toolCall.function.name;
+        const functionToCall = availableFunctions[functionName];
+        const functionArgs = JSON.parse(toolCall.function.arguments);
+        const functionResponse = await functionToCall(functionArgs);
+        messages.push({
+          tool_call_id: toolCall.id,
+          role: "tool",
+          name: functionName,
+          content: functionResponse ? JSON.stringify(functionResponse) : "",
+        }); // extend conversation with function response
+      }
+
+      resData = await this.openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: messages,
+      }); // get a new response from the model where it can see the function response
+    }
 
     return {
-      data: chatCompletion.choices[0]?.message?.content?.trim() ?? "",
-      usage: chatCompletion.usage?.total_tokens ?? 0,
+      data: resData.choices[0]?.message?.content?.trim() ?? "",
+      usage: resData.usage?.total_tokens ?? 0,
     };
   },
 };

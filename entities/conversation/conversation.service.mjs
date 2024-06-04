@@ -27,6 +27,13 @@ export const ConversationService = {
       },
     ];
 
+    // Sanitize the conversation elements that have content null
+    newConversation.forEach((message) => {
+      if (message.content === null || typeof message.content !== "string") {
+        message.content = "";
+      }
+    });
+
     // If the conversation for the day is more than 60 messages, return false
     const isLimit = await this.checkConversationLimit({
       conversation: newConversation,

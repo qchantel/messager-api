@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 export const TelegramService = {
   sendVoiceAIMessage: async function sendVoiceAIMessage(chatId, bot, text) {
     try {
+      if (!text) throw new Error("No text provided");
       const { voice = "alloy" } = await MongoDB.users.findOne({
         telegramUserId: chatId,
       });

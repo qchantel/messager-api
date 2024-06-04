@@ -17,15 +17,30 @@ export const WeatherService = {
             lon: longitude,
             appid: openWeatherMapApiKey,
             units: "metric",
-            exclude: ["current", "minutely", "hourly"],
+            exclude: ["current", "hourly", "daily"],
           },
         }
       );
 
-      // const temperature = weatherData.main.temp;
-      // const description = weatherData.weather[0].description;
+      // For daily remove the decimals of all the fields
+      const weatherData = response.data;
+      delete weatherData.hourly;
+      delete weatherData.minutely;
 
-      return response.data;
+      Object.keys(weatherData.current).forEach((key) => {
+        if (typeof weatherData.current[key] === "number") {
+          weatherData.current[key] = Math.floor(weatherData.current[key]);
+        }
+      });
+      weatherData.daily.forEach((day) => {
+        Object.keys(day).forEach((key) => {
+          if (typeof day[key] === "number") {
+            day[key] = Math.floor(day[key]);
+          }
+        });
+      });
+
+      return weatherData;
     } catch (error) {
       console.error("Error fetching weather data:", error);
     }

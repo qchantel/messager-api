@@ -1,7 +1,7 @@
 import { MongoDB } from "../../db/mongodb.mjs";
 import { TelegramService } from "../bot/bot.service.mjs";
 import { ChatService } from "../chats/chats.service.mjs";
-import { NewsService } from "../news/news.service.mjs";
+import { NEWS_CATEGORIES_LIST, NewsService } from "../news/news.service.mjs";
 import { NotificationsService } from "../notifications/notifications.service.mjs";
 
 export const UsersService = {
@@ -39,7 +39,6 @@ export const UsersService = {
 
   notifyUsers: async function notifyUsers(bot) {
     const usersToNotify = await this.usersToNotify();
-    console.log({ usersToNotify });
     const today = NewsService.getCurrentDate();
 
     const filter = { _id: { $in: usersToNotify.map((user) => user._id) } };
@@ -112,5 +111,46 @@ ${remainingNews
       .toArray();
 
     return usersToNotify;
+  },
+
+  changeNewsCategories: async function (
+    telegramUserId,
+    categoriesToAdd = [],
+    categoriesToRemove = []
+  ) {
+    // sanitize categories
+    const sanitizedToAdd = categoriesToAdd.filter((category) =>
+      NEWS_CATEGORIES_LIST.includes(category)
+    );
+    const sanitizedToRemove = categoriesToRemove.filter((category) =>
+      NEWS_CATEGORIES_LIST.includes(category)
+    );
+
+    const user = await MongoDB.users.findOne({ telegramUserId });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const categories = user.categories ?? [];
+
+    const newCategories = [
+      ...categories.filter((category) => !sanitizedToRemove.includes(category)),
+      ...sanitizedToAdd,
+    ];
+
+    // remove duplicates
+    const uniqueCategories = [...new Set(newCategories)];
+
+    await MongoDB.users.updateOne(
+      { telegramUserId },
+      {
+        $set: {
+          categories: uniqueCategories,
+        },
+      }
+    );
+
+    return newCategories;
   },
 };
