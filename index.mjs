@@ -165,12 +165,13 @@ bot.onText(/\/categories/, async (msg) => {
     telegramUserId: msg.from.id,
     from: msg.from,
   });
+  const userCategories = user.categories ?? NEWS_CATEGORIES_LIST;
   bot.sendMessage(
     msg.chat.id,
     `<b>Available categories</b>:\n${NEWS_CATEGORIES_LIST.map((category) => {
       return category.charAt(0).toUpperCase() + category.slice(1);
     }).join(", ")}\n\n
-<b>Your current categories</b>:\n${user.categories
+<b>Your current categories</b>:\n${userCategories
       .map((category) => {
         return category.charAt(0).toUpperCase() + category.slice(1);
       })
