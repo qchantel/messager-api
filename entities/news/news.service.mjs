@@ -31,7 +31,7 @@ export const NewsService = {
 
     if (!dbNews) return null;
 
-    return dbNews[code];
+    return dbNews[code.toLowerCase()];
   },
   // TheNewsAPI
   getNews: async function (userParams = {}) {
@@ -50,6 +50,7 @@ export const NewsService = {
         `https://api.thenewsapi.com/v1/news/headlines?${querystring}`
       );
 
+      console.log("here", response.data.data);
       return response.data.data;
     } catch (e) {
       console.error(e);
@@ -92,7 +93,7 @@ export const NewsService = {
       const today = this.getCurrentDate();
 
       const query = { date: today };
-      const update = { $set: { [code]: news } };
+      const update = { $set: { [code.toLowerCase()]: news } };
       const options = { upsert: true };
       await MongoDB.news.updateOne(query, update, options);
     }
