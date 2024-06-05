@@ -38,7 +38,7 @@ export const NewsService = {
     const params = {
       locale: "fr",
       search: "",
-      limit: 2,
+      limit: 30,
       api_token: process.env.THE_NEWS_API_KEY,
       headlines_per_category: 6,
       ...userParams,
@@ -49,6 +49,7 @@ export const NewsService = {
       const response = await axios.get(
         `https://api.thenewsapi.com/v1/news/headlines?${querystring}`
       );
+
       return response.data.data;
     } catch (e) {
       console.error(e);

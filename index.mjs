@@ -185,12 +185,6 @@ Just tell me the categories you want to have in your news. For example: "I want 
   );
 });
 
-// Detects when the user leaves the chat
-bot.on("left_chat_member", async (msg) => {
-  console.log("Someone left the chat", msg);
-  await UsersService.toggleNotifications(msg.from.id, false);
-});
-
 bot.onText(/\/daily/, async (msg) => {
   const telegramUserId = msg.from.id;
   const chatId = msg.chat.id;
