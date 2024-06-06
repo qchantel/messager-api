@@ -7,6 +7,30 @@ import { UsersService } from "../users/users.service.mjs";
 import { WeatherService } from "../weather/weather.service.mjs";
 
 export const ChatService = {
+  broadcastMessage: async function (message, bot) {
+    const users = await MongoDB.users.find({}).toArray();
+
+    for (const user of users) {
+      if (user.notifications)
+        await bot.sendMessage(
+          user.telegramUserId + "",
+          `Hello, it’s Heem 👋
+
+I just got an update:
+- Talk to me via text/voice
+- Pick the news categories, try typing /categories.
+- I have access to the weather information and can change your settings. For example say “Je veux uniquement des news de science” in French or “Tomorrow send my daily at 9am bro”.
+- If you find my voice annoying, you are now able to change it, type /voice
+         
+Coming soon:
+- Live access to all the news and stories from now and the past
+- Sync with your Google calendar
+
+🐥`
+        );
+    }
+  },
+
   generateFirstMessageOfTheDay: async function ({ telegramUserId }, bot) {
     const user = await MongoDB.users.findOne({ telegramUserId });
 

@@ -53,6 +53,10 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 // Start the interval
 const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
 
+bot.onText(/\/broadcast/, async (msg) => {
+  await ChatService.broadcastMessage("Notifications have been stopped", bot);
+});
+
 bot.onText(/\/stop/, async (msg) => {
   // Stop the notification for this user
   await UsersService.toggleNotifications(msg.from.id, false);
