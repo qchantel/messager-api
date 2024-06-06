@@ -30,8 +30,13 @@ const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 //   { command: "/start", description: "Start receiving messages" },
 // ]);
 
-console.log("no?");
-NewsService.getSelectedNews("fr");
+// await NewsService.getNews("fr", {
+//   // locale: "fr",
+//   search: "",
+//   limit: 10,
+//   headlines_per_category: 1,
+//   // categories: [],
+// });
 
 // Ping MongoDB
 await MongoDB.ping();

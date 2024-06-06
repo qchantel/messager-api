@@ -1,5 +1,4 @@
 import axios from "axios";
-import { AIService } from "../ai/ai.service.mjs";
 import { MongoDB } from "../../db/mongodb.mjs";
 const removeDuplicates = (arr) => {
   const uniqueUUIDs = new Set();
@@ -44,13 +43,14 @@ export const NewsService = {
     return dbNews[code.toLowerCase()];
   },
   // TheNewsAPI
-  getNews: async function (code) {
+  getNews: async function (code, overrides = {}) {
     const params = {
-      locale: `${code}, us`,
+      language: `en,${code}`,
       search: "",
       limit: 50,
       api_token: process.env.THE_NEWS_API_KEY,
       headlines_per_category: 6,
+      ...overrides,
     };
 
     try {
@@ -112,17 +112,11 @@ export const NewsService = {
       const query = { date: today };
       const update = { $set: { [code.toLowerCase()]: news } };
       const options = { upsert: true };
-      console.log("yo");
-
       await MongoDB.news.updateOne(query, update, options);
-      console.log(news);
     }
 
     const filtered = await this.filterByCategory(categories, news);
-
-    console.log(filtered.length);
-    // console.log(filtered);
-    return filtered ?? [];
+    return filtered.slice(0, 5) ?? [];
   },
 
   filterByCategory: async function (categories, news) {
@@ -141,44 +135,3 @@ export const NewsService = {
     return removeDuplicates(articles);
   },
 };
-
-// LEGACY CODE
-// const selectedNews = await AIService.neutralCompletion(
-//   `I will send you an array of news. You will need to select 5 of them.
-
-//   1) the first one shall be the most important news of the day
-//   2) the second one shall be a surprising news
-//   3) the second one shall be a positive news
-//   4) the second one shall be a an international news
-//   5) the second one shall be any of your choice
-
-//   Do not include the same news twice.
-
-//   Here are the news:
-//   ${JSON.stringify(news.articles)}
-
-//     Provide your response as a JSON array structure in the form:
-//     [
-//       {
-//         ... // article 1
-//       },
-//       {
-//         ... // article 2
-//       },
-//       ...
-//     }
-
-//     Include no other commentary.
-//     `
-// );
-
-// let parsed = [];
-
-// try {
-//   parsed = JSON.parse(selectedNews);
-// } catch (e) {
-//   console.error(e);
-//   if (leave) return selectedNews;
-//   console.error("invalid, trying again");
-//   return await this.getSelectedNews(code, 1);
-// }
