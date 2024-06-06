@@ -1,6 +1,16 @@
 import axios from "axios";
 import { AIService } from "../ai/ai.service.mjs";
 import { MongoDB } from "../../db/mongodb.mjs";
+const removeDuplicates = (arr) => {
+  const uniqueUUIDs = new Set();
+  return arr.filter((obj) => {
+    if (uniqueUUIDs.has(obj.uuid)) {
+      return false;
+    }
+    uniqueUUIDs.add(obj.uuid);
+    return true;
+  });
+};
 
 function encodeData(data) {
   return Object.keys(data)
@@ -34,14 +44,13 @@ export const NewsService = {
     return dbNews[code.toLowerCase()];
   },
   // TheNewsAPI
-  getNews: async function (userParams = {}) {
+  getNews: async function (code) {
     const params = {
-      locale: "fr",
+      locale: `${code}, us`,
       search: "",
-      limit: 30,
+      limit: 50,
       api_token: process.env.THE_NEWS_API_KEY,
       headlines_per_category: 6,
-      ...userParams,
     };
 
     try {
@@ -50,8 +59,16 @@ export const NewsService = {
         `https://api.thenewsapi.com/v1/news/headlines?${querystring}`
       );
 
-      console.log("here", response.data.data);
-      return response.data.data;
+      const data = response.data.data;
+
+      Object.keys(data).forEach((key) => {
+        const category = data[key];
+        category.forEach((article) => {
+          delete article.similar;
+        });
+      });
+
+      return data;
     } catch (e) {
       console.error(e);
     }
@@ -95,52 +112,33 @@ export const NewsService = {
       const query = { date: today };
       const update = { $set: { [code.toLowerCase()]: news } };
       const options = { upsert: true };
+      console.log("yo");
+
       await MongoDB.news.updateOne(query, update, options);
+      console.log(news);
     }
 
-    const filtered = (await this.filterByCategory(categories, news)).slice(
-      0,
-      5
-    );
+    const filtered = await this.filterByCategory(categories, news);
 
-    return filtered;
+    console.log(filtered.length);
+    // console.log(filtered);
+    return filtered ?? [];
   },
 
   filterByCategory: async function (categories, news) {
-    const filtered = [];
+    const articles = [];
 
-    for (const category of categories) {
-      if (!news[category]) continue;
-      if (!news[category][0]) continue;
+    // For loop that iters 6 times
+    for (let i = 0; i < 6; i++) {
+      for (const category of categories) {
+        if (!news[category]) continue;
+        if (!news[category][i]) continue;
 
-      filtered.push(news[category][0]);
+        articles.push(news[category][i]);
+      }
     }
 
-    if (!(filtered.length < 5)) return filtered;
-
-    for (const category of categories) {
-      if (!news[category]) continue;
-      if (!news[category][1]) continue;
-      filtered.push(news[category][1]);
-    }
-
-    if (!(filtered.length < 5)) return filtered;
-
-    for (const category of categories) {
-      if (!news[category]) continue;
-      if (!news[category][2]) continue;
-      filtered.push(news[category][2]);
-    }
-
-    if (!(filtered.length < 5)) return filtered;
-
-    for (const category of categories) {
-      if (!news[category]) continue;
-      if (!news[category][3]) continue;
-      filtered.push(news[category][3]);
-    }
-
-    return filtered;
+    return removeDuplicates(articles);
   },
 };
 
