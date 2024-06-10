@@ -24,23 +24,27 @@ const app = express();
 // Store user state and context
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
-bot.setMyCommands([
-  { command: "/location", description: "Set your location 📍" },
-  { command: "/time", description: "Set the time of the notification ⏰" },
-  { command: "/voice", description: "Pick a voice 🎤" },
-  { command: "/categories", description: "Change news categories 📰" },
-  { command: "/stop", description: "Stop the notifications 🙊" },
-  { command: "/start", description: "Start receiving messages" },
-  { command: "/infos", description: "Get the infos" },
-]);
+// bot.setMyCommands([
+//   { command: "/location", description: "Set your location 📍" },
+//   { command: "/time", description: "Set the time of the notification ⏰" },
+//   { command: "/voice", description: "Pick a voice 🎤" },
+//   { command: "/categories", description: "Change news categories 📰" },
+//   { command: "/stop", description: "Stop the notifications 🙊" },
+//   { command: "/start", description: "Start receiving messages" },
+//   { command: "/infos", description: "Get the infos" },
+// ]);
 
 // await NewsService.getNews("fr", {
 //   // locale: "fr",
 //   search: "",
 //   limit: 10,
-//   headlines_per_category: 1,
+//   headlines_per_category: 3,
 //   // categories: [],
 // });
+
+// await NewsService.getSelectedNews("fr", ["science", "tech"]);
+
+// console.log(await NewsService.getNewsLegacy("fr"));
 
 // Ping MongoDB
 await MongoDB.ping();
@@ -57,9 +61,9 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 // Start the interval
 const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
 
-bot.onText(/\/broadcast/, async (msg) => {
-  await ChatService.broadcastMessage("Notifications have been stopped", bot);
-});
+// bot.onText(/\/broadcast/, async (msg) => {
+//   await ChatService.broadcastMessage("Notifications have been stopped", bot);
+// });
 
 bot.onText(/\/infos/, async (msg) => {
   const user = await UsersService.findOrCreateUser({

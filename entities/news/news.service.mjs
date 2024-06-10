@@ -22,12 +22,12 @@ function encodeData(data) {
 
 export const NEWS_CATEGORIES_LIST = [
   "general",
-  "science",
-  "tech",
   "business",
+  "politics",
   "health",
   "entertainment",
-  "politics",
+  "science",
+  "tech",
   "travel",
   "sports",
 ];
@@ -44,8 +44,10 @@ export const NewsService = {
   },
   // TheNewsAPI
   getNews: async function (code, overrides = {}) {
+    const lowerCode = code.toLowerCase();
     const params = {
-      language: `en,${code}`,
+      language: `en,${lowerCode}`,
+      locale: `${lowerCode}`,
       search: "",
       limit: 50,
       api_token: process.env.THE_NEWS_API_KEY,
@@ -74,7 +76,7 @@ export const NewsService = {
     }
   },
   // NewsAPI
-  getNewsLegacy: async function getNews(code = "us") {
+  getNewsLegacy: async function (code = "us") {
     try {
       const response = await axios.get(
         `https://newsapi.org/v2/top-headlines?country=${code.toLowerCase()}&apiKey=${
@@ -103,7 +105,7 @@ export const NewsService = {
     // Check for news in the database
     news = await this.getDbNews(code);
 
-    if (!news) {
+    if (!news || !news.length) {
       // Otherwise get news from the API
       news = await this.getNews(code);
 
