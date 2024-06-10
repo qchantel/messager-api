@@ -12,6 +12,15 @@ export function convertToUTC(userTime, offset_in_seconds) {
   return UTCSeconds;
 }
 
+export function convertUTCToTime(UTCSeconds, user) {
+  const hours = Math.floor(UTCSeconds / 3600);
+  const minutes = Math.floor((UTCSeconds % 3600) / 60);
+
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 // export function convertToUTC(userTime, userTimezone) {
 //   const [hours, minutes] = userTime.split(":");
 

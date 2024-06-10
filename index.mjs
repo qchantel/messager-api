@@ -9,7 +9,10 @@ import { MongoDB } from "./db/mongodb.mjs";
 import { UsersService } from "./entities/users/users.service.mjs";
 import { WeatherService } from "./entities/weather/weather.service.mjs";
 import { ChatService } from "./entities/chats/chats.service.mjs";
-import { NotificationsService } from "./entities/notifications/notifications.service.mjs";
+import {
+  NotificationsService,
+  convertUTCToTime,
+} from "./entities/notifications/notifications.service.mjs";
 import { VoiceService } from "./entities/voice/voice.mjs";
 import {
   NEWS_CATEGORIES_LIST,
@@ -28,6 +31,7 @@ const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 //   { command: "/categories", description: "Change news categories 📰" },
 //   { command: "/stop", description: "Stop the notifications 🙊" },
 //   { command: "/start", description: "Start receiving messages" },
+//   { command: "/infos", description: "Get the infos" },
 // ]);
 
 // await NewsService.getNews("fr", {
@@ -55,6 +59,38 @@ const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
 
 bot.onText(/\/broadcast/, async (msg) => {
   await ChatService.broadcastMessage("Notifications have been stopped", bot);
+});
+
+bot.onText(/\/infos/, async (msg) => {
+  const user = await UsersService.findOrCreateUser({
+    telegramUserId: msg.from.id,
+    from: msg.from,
+  });
+
+  const userCategories = user.categories ?? NEWS_CATEGORIES_LIST;
+  bot.sendMessage(
+    msg.chat.id,
+    `👋 Hello ${msg.from.first_name}, here are your infos:
+    - Your location is set to ${user.location.city}, ${user.location.country}
+    - Your notification time is set to ${convertUTCToTime(
+      user.time_in_seconds_since_midnight_to_notify
+    )} UTC
+    - Your voice is set to ${user.voice}
+    - Your news categories are ${userCategories.join(", ")}
+    - You are ${
+      user.notifications
+        ? "currently receiving notifications"
+        : "not receiving notifications"
+    }
+
+You can talk to me via text or voice. I have access to the weather information and can change your settings. For example say “I want to have only science news” or “Tomorrow send my daily at 9am".
+
+Want to reach out? Please contact quentin@notice.studio.
+
+    
+
+    `
+  );
 });
 
 bot.onText(/\/stop/, async (msg) => {
