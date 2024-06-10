@@ -24,15 +24,15 @@ const app = express();
 // Store user state and context
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
-// bot.setMyCommands([
-//   { command: "/location", description: "Set your location 📍" },
-//   { command: "/time", description: "Set the time of the notification ⏰" },
-//   { command: "/voice", description: "Pick a voice 🎤" },
-//   { command: "/categories", description: "Change news categories 📰" },
-//   { command: "/stop", description: "Stop the notifications 🙊" },
-//   { command: "/start", description: "Start receiving messages" },
-//   { command: "/infos", description: "Get the infos" },
-// ]);
+bot.setMyCommands([
+  { command: "/location", description: "Set your location 📍" },
+  { command: "/time", description: "Set the time of the notification ⏰" },
+  { command: "/voice", description: "Pick a voice 🎤" },
+  { command: "/categories", description: "Change news categories 📰" },
+  { command: "/stop", description: "Stop the notifications 🙊" },
+  { command: "/start", description: "Start receiving messages" },
+  { command: "/infos", description: "Get the infos" },
+]);
 
 // await NewsService.getNews("fr", {
 //   // locale: "fr",
