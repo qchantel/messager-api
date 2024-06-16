@@ -73,9 +73,9 @@ const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
 bot.onText(/\/languages/, async (msg) => {
   bot.sendMessage(
     msg.chat.id,
-    `Tell me the language you want to receive the news in. For example, "I want to receive the news in French" or "I want to receive the news in English and Polish".
+    `Tell me the languages you want articles to be in. For example, "I want to receive articles in French" or "I want to receive English and Polish articles".
 
-‼️ Bear in mind, it is the language of the articles I send you. For instance, I may not have any news in Polish if you live in Spain. 
+‼️ Bear in mind, it is the language of the articles I send you. For instance, I may not have any news in Polish if your location is set to Spain.
 
 The voice will talk to you in the first language you mention in the list.
     `
