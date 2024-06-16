@@ -39,17 +39,12 @@ Coming soon:
       ? `Weather alerts: ${JSON.stringify(weather.alerts)}`
       : "";
 
-    console.log("yes", user.location.country, user.categories);
-
     const selectedNews = await NewsService.getSelectedNews(
       user.location.country,
       user.categories ?? NEWS_CATEGORIES_LIST
     );
 
-    console.log(selectedNews.length);
-
     const firthThreeNews = selectedNews.slice(0, 3);
-    console.log(firthThreeNews.length);
 
     const answer = await AIService.simpleCompletion(
       `You send a daily message every morning. This is one of these messages. This message will be spoken by a voice assistant.

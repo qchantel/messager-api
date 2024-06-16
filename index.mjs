@@ -89,7 +89,7 @@ bot.onText(/\/infos/, async (msg) => {
 
 You can talk to me via text or voice. I have access to the weather information and can change your settings. For example say “I want to have only science news” or “Tomorrow send my daily at 9am".
 
-Want to reach out? Please contact quentin@notice.studio.
+Want to reach out? Contact quentin@notice.studio.
 
     
 
