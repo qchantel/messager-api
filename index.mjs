@@ -18,21 +18,26 @@ import {
   NEWS_CATEGORIES_LIST,
   NewsService,
 } from "./entities/news/news.service.mjs";
+import { AVAILABLE_LANGUAGES } from "./entities/users/languages.const.mjs";
 
 const app = express();
 
 // Store user state and context
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
-// bot.setMyCommands([
-//   { command: "/location", description: "Set your location 📍" },
-//   { command: "/time", description: "Set the time of the notification ⏰" },
-//   { command: "/voice", description: "Pick a voice 🎤" },
-//   { command: "/categories", description: "Change news categories 📰" },
-//   { command: "/stop", description: "Stop the notifications 🙊" },
-//   { command: "/start", description: "Start receiving messages" },
-//   { command: "/infos", description: "Get the infos" },
-// ]);
+bot.setMyCommands([
+  { command: "/location", description: "Set your location 📍" },
+  { command: "/time", description: "Set the time of the notification ⏰" },
+  { command: "/voice", description: "Pick a voice 🎤" },
+  { command: "/categories", description: "Change news categories 📰" },
+  { command: "/stop", description: "Stop the notifications 🙊" },
+  { command: "/start", description: "Start receiving messages" },
+  {
+    command: "/languages",
+    description: "We speak a lot of languages.",
+  },
+  { command: "/infos", description: "Get the infos" },
+]);
 
 // await NewsService.getNews("fr", {
 //   // locale: "fr",
@@ -65,10 +70,27 @@ const interval = setInterval(() => UsersService.notifyUsers(bot), 60 * 1000);
 //   await ChatService.broadcastMessage("Notifications have been stopped", bot);
 // });
 
+bot.onText(/\/languages/, async (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    `Tell me the language you want to receive the news in. For example, "I want to receive the news in French" or "I want to receive the news in English and Polish".
+
+‼️ Bear in mind, it is the language of the articles I send you. For instance, I may not have any news in Polish if you live in Spain. 
+
+The voice will talk to you in the first language you mention in the list.
+    `
+  );
+});
+
 bot.onText(/\/infos/, async (msg) => {
   const user = await UsersService.findOrCreateUser({
     telegramUserId: msg.from.id,
     from: msg.from,
+  });
+
+  const languages = user.languages ?? user?.location?.country;
+  const languagesName = languages.map((language) => {
+    return AVAILABLE_LANGUAGES[language];
   });
 
   const userCategories = user.categories ?? NEWS_CATEGORIES_LIST;
@@ -81,6 +103,10 @@ bot.onText(/\/infos/, async (msg) => {
     )} UTC
     - Your voice is set to ${user.voice}
     - Your news categories are ${userCategories.join(", ")}
+    - You receive articles in ${languagesName}
+    - The voice will talk to you in ${
+      languagesName[0]
+    } every morning, in other cases, it will respond in the language your speak
     - You are ${
       user.notifications
         ? "currently receiving notifications"
@@ -91,7 +117,6 @@ You can talk to me via text or voice. I have access to the weather information a
 
 Want to reach out? Contact quentin@notice.studio.
 
-    
 
     `
   );
@@ -439,7 +464,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start the Express.js server
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8085;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

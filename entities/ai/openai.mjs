@@ -7,6 +7,7 @@ import { WeatherService } from "../weather/weather.service.mjs";
 import { UsersService } from "../users/users.service.mjs";
 import { NotificationsService } from "../notifications/notifications.service.mjs";
 import { NEWS_CATEGORIES_LIST } from "../news/news.service.mjs";
+import { AVAILABLE_LANGUAGES } from "../users/languages.const.mjs";
 
 export const OpenAIService = {
   openai: new OpenAI({
@@ -29,24 +30,6 @@ export const OpenAIService = {
 
   countToken: (text) => {
     return text.split(" ").length;
-  },
-
-  async generateImage(config) {
-    const { data } = await axios.post(
-      "https://api.openai.com/v1/images/generations",
-      {
-        ...config,
-        n: 1,
-        response_format: "url",
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
-    return data.data[0]?.url;
   },
 
   createTextToSpeech: async function (fileName, text, voice = "alloy") {
@@ -122,6 +105,17 @@ export const OpenAIService = {
             availableCategories: NEWS_CATEGORIES_LIST,
             usersCategories: user.categories ?? NEWS_CATEGORIES_LIST,
           };
+        },
+        get_user_news_languages: () => {
+          return {
+            userLanguages: user.languages ?? user?.location?.country,
+          };
+        },
+        set_user_news_languages: async ({ languages }) => {
+          return await UsersService.setLanguages(
+            user.telegramUserId,
+            languages
+          );
         },
         change_news_categories: async ({
           categories_to_add,

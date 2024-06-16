@@ -43,10 +43,11 @@ export const NewsService = {
     return dbNews[code.toLowerCase()];
   },
   // TheNewsAPI
-  getNews: async function (code, overrides = {}) {
+  getNews: async function (code, languagesString, overrides = {}) {
+    console.log({ languagesString });
     const lowerCode = code.toLowerCase();
     const params = {
-      language: `en,${lowerCode}`,
+      language: languagesString,
       locale: `${lowerCode}`,
       search: "",
       limit: 50,
@@ -98,21 +99,28 @@ export const NewsService = {
   },
 
   getSelectedNews: async function getSelectedNews(
-    code = "us",
-    categories = NEWS_CATEGORIES_LIST
+    countryCode = "us",
+    categories = NEWS_CATEGORIES_LIST,
+    languages
   ) {
     let news = null;
+    const languagesString = (
+      languages ? languages.join(",") : countryCode
+    ).toLowerCase();
+
     // Check for news in the database
-    news = await this.getDbNews(code);
+    news = await this.getDbNews(
+      `${countryCode.toLowerCase()}-${languagesString}`
+    );
 
     if (!news || !news.length) {
       // Otherwise get news from the API
-      news = await this.getNews(code);
+      news = await this.getNews(countryCode, languagesString);
 
       const today = this.getCurrentDate();
 
       const query = { date: today };
-      const update = { $set: { [code.toLowerCase()]: news } };
+      const update = { $set: { [countryCode.toLowerCase()]: news } };
       const options = { upsert: true };
       await MongoDB.news.updateOne(query, update, options);
     }

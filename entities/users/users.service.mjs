@@ -3,6 +3,7 @@ import { TelegramService } from "../bot/bot.service.mjs";
 import { ChatService } from "../chats/chats.service.mjs";
 import { NEWS_CATEGORIES_LIST, NewsService } from "../news/news.service.mjs";
 import { NotificationsService } from "../notifications/notifications.service.mjs";
+import { AVAILABLE_LANGUAGES } from "./languages.const.mjs";
 
 export const UsersService = {
   findOrCreateUser: async function findOrCreateUser({ telegramUserId, from }) {
@@ -24,6 +25,23 @@ export const UsersService = {
       language_code: from.language_code,
       created_at: new Date(),
     });
+  },
+
+  setLanguages: async function (telegramUserId, languages) {
+    // Check if the languages are valid (array of strings)
+    const validLanguages = languages.filter(
+      (language) =>
+        typeof language === "string" && AVAILABLE_LANGUAGES[language]
+    );
+
+    await MongoDB.users.updateOne(
+      { telegramUserId },
+      {
+        $set: {
+          languages: validLanguages,
+        },
+      }
+    );
   },
 
   toggleNotifications: async function (telegramUserId, value = true) {

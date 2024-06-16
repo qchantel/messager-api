@@ -92,4 +92,34 @@ export const TOOLS_AI = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_user_news_languages",
+      description:
+        "Get all the user ISO codes languages he wants to receive the news in.",
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_user_news_languages",
+      description:
+        "Set the languages the user wants to receive the news in. Use it if the user wants to change the languages.",
+      parameters: {
+        type: "object",
+        properties: {
+          languages: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            description:
+              "The languages the user wants to receive the news in. It should be an array of ISO codes.",
+          },
+        },
+        required: ["languages"],
+      },
+    },
+  },
 ];

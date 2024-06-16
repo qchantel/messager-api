@@ -41,8 +41,13 @@ Coming soon:
 
     const selectedNews = await NewsService.getSelectedNews(
       user.location.country,
-      user.categories ?? NEWS_CATEGORIES_LIST
+      user.categories ?? NEWS_CATEGORIES_LIST,
+      user.languages
     );
+
+    const languages = user.languages
+      ? user.languages[0]
+      : user?.location?.country;
 
     const firthThreeNews = selectedNews.slice(0, 3);
 
@@ -50,7 +55,7 @@ Coming soon:
       `You send a daily message every morning. This is one of these messages. This message will be spoken by a voice assistant.
         The user firstname is ${user.first_name} and lives in ${
         user.location.city
-      }.
+      }. You talk to the user in ${languages}.
 
         These are the information I have about the weather, tell them a good morning and the weather.
         When you talk about temperatures, never add the decimals.
