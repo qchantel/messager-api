@@ -103,10 +103,7 @@ bot.onText(/\/infos/, async (msg) => {
     )} UTC
     - Your voice is set to ${user.voice}
     - Your news categories are ${userCategories.join(", ")}
-    - You receive articles in ${languagesName}
-    - The voice will talk to you in ${
-      languagesName[0]
-    } every morning, in other cases, it will respond in the language your speak
+    - You receive articles in ${languagesName} spoken in ${languagesName[0]}
     - You are ${
       user.notifications
         ? "currently receiving notifications"
