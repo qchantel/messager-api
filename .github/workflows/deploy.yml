@@ -20,5 +20,6 @@ jobs:
             cd ./messager-api
             doppler secrets download --no-file --format=env > .env
             git pull
+            cd ./backend
             npm install
             pm2 restart default
