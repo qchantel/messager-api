@@ -24,6 +24,7 @@ export const UsersService = {
       last_name: from.last_name,
       language_code: from.language_code,
       created_at: new Date(),
+      time_in_seconds_since_midnight_to_notify: 21600,
     });
   },
 

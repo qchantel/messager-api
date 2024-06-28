@@ -47,7 +47,10 @@ bot.setMyCommands([
 //   // categories: [],
 // });
 
-// await NewsService.getSelectedNews("fr", ["science", "tech"]);
+// const news = await NewsService.getSelectedNews("fr", NEWS_CATEGORIES_LIST, [
+//   "fr",
+// ]);
+// console.log(news.length);
 
 // console.log(await NewsService.getNewsLegacy("fr"));
 
